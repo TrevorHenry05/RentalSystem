@@ -1,0 +1,87 @@
+package model;
+
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.Locale;
+import model.vehicles.AbstractVehicle;
+
+public class Bill {
+
+    /** The bill id. */
+    private final int myBillID;
+    
+    /** The primary User Object being logged in. */
+    private final User myPrimaryUser;
+    
+    /** The vehicle Object being rented. */
+    private final AbstractVehicle myVehicle;
+    
+    /** Number of days the vehicle is being rented. */
+    private final int myNumDays;
+    
+    /** The bill amount for days and vehicle that was computed. */
+    private BigDecimal myBillAmount;
+    
+    public Bill(final int theBillID, final User thePrimaryUser, final AbstractVehicle theVehicle, final int theNumDays) {
+        this.myBillID = theBillID;
+        this.myPrimaryUser = thePrimaryUser;
+        this.myVehicle = theVehicle;
+        this.myNumDays = theNumDays;
+        this.setMyBillAmount(new BigDecimal("0.00"));
+    }
+    
+    public void computeAndPrintAmount() {
+        BigDecimal totalRent = new BigDecimal("0.0");
+        
+        final BigDecimal amountPerDay = this.myVehicle.calculateRentalAmount();
+        final BigDecimal rentalamount = amountPerDay.multiply(new BigDecimal(this.myNumDays));
+        totalRent = totalRent.add(rentalamount);
+        
+        final BigDecimal insuranceCost = rentalamount.multiply(new BigDecimal("0.010"));
+        totalRent = totalRent.add(insuranceCost);
+        
+        final BigDecimal taxAmount = rentalamount.multiply(new BigDecimal("0.10"));
+        totalRent = totalRent.add(taxAmount);
+        
+        
+        
+        final NumberFormat nf = NumberFormat.getInstance(Locale.US);
+        
+        System.out.println("***********************\n Rental Bill Summery  \n**********************");
+        System.out.println("User Name:" + this.myPrimaryUser.getMyName());
+        System.out.println("----Vehicle Information----");
+        System.out.println("VehicleName " + this.myVehicle.getMyName());
+        System.out.println("VehicleID " + this.myVehicle.getMyVehicleID());
+        System.out.println("VehicleType " + this.myVehicle.getMyVIN());
+        System.out.println("VIN " + this.myVehicle.getMyVIN());
+        System.out.println("----Cost Information----");
+        System.out.println("Cost Per Day: $" + nf.format(amountPerDay));
+        System.out.println("No. of Rental days: " + this.myNumDays);
+        System.out.println("Total Amount: $" + nf.format(rentalamount));
+        System.out.println("Insurance: $" + nf.format(insuranceCost));
+        
+        if (this.myPrimaryUser.getMyVIPStatus()) {
+            final BigDecimal vipDiscount = rentalamount.multiply(new BigDecimal("0.01"));
+            totalRent = totalRent.subtract(vipDiscount);
+            System.out.println("VIPDiscount: -$" + nf.format(vipDiscount));
+        }
+        
+        System.out.println("Tax: $" + nf.format(taxAmount));
+        System.out.println("Total Rent: $" + nf.format(totalRent));
+        System.out.println("Rent Successfull\n**********************"); 
+        
+        this.setMyBillAmount(totalRent);
+    }
+
+    public BigDecimal getMyBillAmount() {
+        return myBillAmount;
+    }
+
+    public void setMyBillAmount(final BigDecimal theBillAmount) {
+        this.myBillAmount = theBillAmount;
+    }
+
+    public int getMyBillID() {
+        return myBillID;
+    }
+}

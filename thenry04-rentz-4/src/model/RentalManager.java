@@ -1,0 +1,293 @@
+package model;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Scanner;
+import java.util.Set;
+import model.vehicles.AbstractVehicle;
+import model.vehicles.BiCycle;
+import model.vehicles.Car;
+import model.vehicles.MotorBike;
+
+
+public class RentalManager {
+    
+    
+    /**
+     * Global scanner object.
+     */
+    public static final Scanner INPUT = new Scanner(System.in);
+    
+    /**
+     * Map that stores Vehicle Objects.
+     */   
+    private final Map<Integer, AbstractVehicle> myVehicleList = generateInventory();
+    
+    /**
+     * Registration Object.
+     */
+    private final Registration myRegistration;   
+    
+    /**
+     * The list of bills.
+     */
+    private final  Map<Integer, Bill> myBills;
+
+    
+    /**
+     *Creates a rentalManager object with a Registration object as a parameter.
+     * 
+     * @param theRegistration
+     */    
+    public RentalManager(final Registration theRegistration) {
+        this.myRegistration = Objects.requireNonNull(theRegistration, "Registration must not be Null");
+        Objects.requireNonNull(this.myVehicleList, "Vehicle List must not be Null");
+        this.myBills = new HashMap<Integer, Bill>();
+    }
+    
+    /**
+     * Generate a inventory for the Vehicles.
+     * 
+     * @return Inventory.
+     */
+    public Map<Integer, AbstractVehicle> generateInventory() {
+        
+        final Map<Integer, AbstractVehicle> inventory = new HashMap<Integer, AbstractVehicle>();
+        
+        final String cruiser = "Cruiser";
+        final String mountain = "Mountain";
+        final Car c1 = new Car(1, "V100", "Fiat", false, false, false);
+        final Car c2 = new Car(2, "V101", "OutBack", true, true, false);
+        final Car c3 = new Car(3, "V102", "BMW", true, true, true);
+        final MotorBike m1 = new MotorBike(4, "B100", "Bike1", false);
+        final MotorBike m2 = new MotorBike(5, "B101", "Bike2", true);
+        final BiCycle b1 = new BiCycle(6, "C100", "Roadies", "Road");
+        final BiCycle b2 = new BiCycle(7, "C101", cruiser, cruiser);
+        final BiCycle b3 = new BiCycle(8, "C102", mountain, mountain);
+        
+        inventory.put(c1.getMyVehicleID(), c1);
+        inventory.put(c2.getMyVehicleID(), c2);
+        inventory.put(c3.getMyVehicleID(), c3);
+        inventory.put(m1.getMyVehicleID(), m1);
+        inventory.put(m2.getMyVehicleID(), m2);
+        inventory.put(b1.getMyVehicleID(), b1);
+        inventory.put(b2.getMyVehicleID(), b2);
+        inventory.put(b3.getMyVehicleID(), b3);
+        
+        return inventory;
+    }
+    
+    /**
+     * Checks the Vehicle inventory to see if the vehicle is in it and if it available to rent and if so returns true.
+     * @param theVehicleID
+     * @return if vehicle is available
+     */
+    public boolean isRentable(final int theVehicleID) {
+        boolean result = false;
+        
+        if (this.myVehicleList.containsKey(theVehicleID) && this.myVehicleList.get(theVehicleID).getMyAvailability()) {
+            result = true;
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Takes in parameters for vehicleID User name and checks if vehicle is rentable and if UserName is a valid User, if so uses the BillID and number of days to create a new
+     * Bill object and compute the rental amount then adds the bill to myBills returns true if successful.
+     * 
+     * @param theVehicleID
+     * @param theUserName
+     * @param theNumDays
+     * @param theBillID
+     * @return Rent Success
+     */
+    public boolean rent(final int theVehicleID, final String theUserName, final int theNumDays, final int theBillID) {
+        
+        boolean result = false;
+        
+        Objects.requireNonNull(theVehicleID, "vehicleID can not be Null");
+        Objects.requireNonNull(theUserName, "UserName can not be Null");
+        Objects.requireNonNull(theNumDays, "NumDays can not be Null");
+        Objects.requireNonNull(theBillID, "BillID can not be Null");
+        
+        if (theVehicleID < 0 || theNumDays < 1 || theBillID < 0) {
+            throw new IllegalArgumentException();
+        }
+        
+        if (theUserName.isEmpty()) {
+            throw new IllegalArgumentException();
+        }
+        
+        
+        if (!this.isRentable(theVehicleID)) {
+            System.out.println("Vehicle not Rentable");
+        }
+        
+        if (!this.myRegistration.getMyUserList().containsKey(theUserName)) {
+            System.out.println("User does not exist, enter different user name:");
+        }
+        
+        if (this.isRentable(theVehicleID) && this.myRegistration.getMyUserList().containsKey(theUserName)) {
+            this.myVehicleList.get(theVehicleID).setMyAvailability(false);
+            
+            final Bill newbill = new Bill(theBillID, this.myRegistration.getMyUserList().get(theUserName), this.myVehicleList.get(theVehicleID), theNumDays);
+            
+            newbill.computeAndPrintAmount();
+            
+            this.myBills.put(theBillID, newbill);
+            
+            result = true;
+        }    
+
+        return result;
+    }
+    
+    /**
+     * Takes a vehicle Id to check if the vehicle is in the inventory and is Not rentable and makes it rentable after the drop off.
+     * 
+     * @param theVehicleID
+     * @return Drop off success
+     */
+    public boolean drop(final int theVehicleID) {
+
+        boolean result = false;
+        
+        if (!this.myVehicleList.containsKey(theVehicleID)) {
+            System.out.println("Vehicle does not exist");
+        }
+        
+        if (this.isRentable(theVehicleID)) {
+            System.out.println("Vehicle is not rented already");
+        }
+        
+        if (this.myVehicleList.containsKey(theVehicleID) && !this.isRentable(theVehicleID)) {
+            this.myVehicleList.get(theVehicleID).setMyAvailability(true);
+            
+            result = true;
+        }
+        
+        return result;
+    }
+    
+    /**     
+     * Get the Vehicle List.
+     * 
+     * @return the Vehicle List
+     */
+    public Map<Integer, AbstractVehicle> getMyVehicleList() {
+        return this.myVehicleList;
+    }
+    
+    /**
+     * Get the registration object.
+     * 
+     * @return Registration object.
+     */
+    public Registration getMyRegistration() {
+        return this.myRegistration;
+    }
+    
+    /**
+     * Displays Rent or Drop-off or exit options for vehicle rental.
+     * 
+     */
+    public void printOptions() {
+        
+        final int billID;
+        
+        System.out.print("Enter 1 or 2 or 3 (1. Rent 2. Drop-off 3.Exit):");
+        final int answer = INPUT.nextInt();
+        System.out.println();
+        
+        
+        
+        if (answer == 1) {
+            
+            int vehicleID;
+            String username;
+            int numDays;
+            
+            System.out.println("You entered option 1");
+            System.out.println();
+        
+            final Map<Integer, AbstractVehicle> vl = this.getMyVehicleList();
+            final Set<Integer> keys = vl.keySet();
+            final Iterator<Integer> itr = keys.iterator();
+        
+            System.out.println("*********************************************************");
+            System.out.println("List of available vehicles:");
+        
+            while (itr.hasNext()) {
+                final int key = itr.next();
+                if (vl.get(key).getMyAvailability()) {
+                    System.out.println(vl.get(key).toString());
+                }
+            }
+            
+            if (this.myBills.isEmpty()) {
+                billID = 1;
+            } else {
+                billID = this.myBills.size() + 1;
+            }
+            
+            do {  
+                System.out.println("**********************\nEnter Details\n**********************");
+                System.out.println("Enter Vehicle ID:");
+                vehicleID = INPUT.nextInt();
+                System.out.println("Enter User Name:");
+                username = INPUT.next();
+                System.out.println("Enter NumDays to Rent:");
+                numDays = INPUT.nextInt();           
+            } while (!this.rent(vehicleID, username, numDays, billID));
+                
+            System.out.println("Rent Succesful\n*******************************");
+            System.out.println("Do you want to continue? ");
+            
+            final boolean answer1 = INPUT.nextBoolean();
+            if (answer1) {
+                this.printOptions();
+            }           
+            
+        } else if (answer == 2) {
+            int vID;
+            
+            System.out.println("You entered option 2");
+            System.out.println();
+            System.out.println("*************************************************************");
+            
+            do {
+                System.out.println("**********************\n Enter Drop-off Details\n**********************");
+                System.out.println("Enter Drop-off Vehicle ID:");
+                vID = INPUT.nextInt(); 
+            } while (!this.drop(vID));
+            
+            
+            System.out.println("Drop-off Succesful\n*******************************");
+            System.out.println("Do you want to continue?");
+            final boolean answer2 = INPUT.nextBoolean();
+            if (answer2) {
+                this.printOptions();
+            }
+            
+        } else {
+            System.out.println("You entered option 3");
+            System.out.println();
+            System.out.println("*****************************************************************");   
+        }
+        
+    }
+    
+    /**
+     * Empties the Vehicle list and the Bills list.
+     */
+    public void clearLists() {
+        myVehicleList.clear();
+        myBills.clear();
+    }
+    
+    
+    
+}
